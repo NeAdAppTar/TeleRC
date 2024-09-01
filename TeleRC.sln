@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33829.357
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeleRC", "DataAnalyzer\TeleRC.csproj", "{588D58BB-9205-409A-ADE2-20FBDDE0949B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{588D58BB-9205-409A-ADE2-20FBDDE0949B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{588D58BB-9205-409A-ADE2-20FBDDE0949B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{588D58BB-9205-409A-ADE2-20FBDDE0949B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{588D58BB-9205-409A-ADE2-20FBDDE0949B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {735D47D0-C356-458E-B878-D5510FBEE7A7}
+	EndGlobalSection
+EndGlobal

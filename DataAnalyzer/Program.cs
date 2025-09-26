@@ -1,6 +1,7 @@
-﻿using DataAnalyzer;
+﻿using TeleRC;
 using System;
 using System.Windows.Forms;
+using DataParserApp;
 
 namespace DataAnalyzerNew
 {
@@ -14,7 +15,8 @@ namespace DataAnalyzerNew
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
+            SplashForm splashForm = new SplashForm();
+            Application.Run(splashForm);
         }
     }
 }

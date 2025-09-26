@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
 using System.Windows.Forms;
-
+using System.Drawing;
 
 
 namespace TeleRC
@@ -13,7 +13,10 @@ namespace TeleRC
         private LiveCharts.WinForms.CartesianChart cartesianChart1;
         private LiveCharts.WinForms.CartesianChart cartesianChart2;
         private PictureBox pictureBoxLidar;
-
+        private System.Windows.Forms.TrackBar trackBarMove;
+        private System.Windows.Forms.TrackBar trackBarTurn;
+        private System.Windows.Forms.Label lblMoveValue;
+        private System.Windows.Forms.Label lblTurnValue;
         private System.Windows.Forms.Timer portRefreshTimer;
         private string[] previousPorts = Array.Empty<string>();
 
@@ -28,16 +31,14 @@ namespace TeleRC
         }
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.txtData = new System.Windows.Forms.TextBox();
             this.cartesianChart1 = new LiveCharts.WinForms.CartesianChart();
             this.cartesianChart2 = new LiveCharts.WinForms.CartesianChart();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.pictureBoxLidar = new System.Windows.Forms.PictureBox();
-            this.rjButton6 = new CustomControls.RJControls.RJButton();
-            this.rjButton4 = new CustomControls.RJControls.RJButton();
-            this.rjButton3 = new CustomControls.RJControls.RJButton();
-            this.rjButton5 = new CustomControls.RJControls.RJButton();
+            this.Описание = new System.Windows.Forms.ToolTip(this.components);
             this.rjButton2 = new CustomControls.RJControls.RJButton();
             this.rjButton1 = new CustomControls.RJControls.RJButton();
             this.txtSendData = new CustomControls.RJControls.RJTextBox();
@@ -122,86 +123,6 @@ namespace TeleRC
             this.pictureBoxLidar.TabStop = false;
             this.pictureBoxLidar.Paint += new System.Windows.Forms.PaintEventHandler(this.pictureBoxLidar_Paint);
             // 
-            // rjButton6
-            // 
-            this.rjButton6.BackColor = System.Drawing.Color.OrangeRed;
-            this.rjButton6.BackgroundColor = System.Drawing.Color.OrangeRed;
-            this.rjButton6.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.rjButton6.BorderRadius = 10;
-            this.rjButton6.BorderSize = 0;
-            this.rjButton6.FlatAppearance.BorderSize = 0;
-            this.rjButton6.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.rjButton6.Font = new System.Drawing.Font("Moscow Sans Regular", 20F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.rjButton6.ForeColor = System.Drawing.Color.White;
-            this.rjButton6.Location = new System.Drawing.Point(1321, 78);
-            this.rjButton6.Margin = new System.Windows.Forms.Padding(2);
-            this.rjButton6.Name = "rjButton6";
-            this.rjButton6.Size = new System.Drawing.Size(53, 53);
-            this.rjButton6.TabIndex = 29;
-            this.rjButton6.Text = " →";
-            this.rjButton6.TextColor = System.Drawing.Color.White;
-            this.rjButton6.UseVisualStyleBackColor = false;
-            // 
-            // rjButton4
-            // 
-            this.rjButton4.BackColor = System.Drawing.Color.OrangeRed;
-            this.rjButton4.BackgroundColor = System.Drawing.Color.OrangeRed;
-            this.rjButton4.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.rjButton4.BorderRadius = 10;
-            this.rjButton4.BorderSize = 0;
-            this.rjButton4.FlatAppearance.BorderSize = 0;
-            this.rjButton4.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.rjButton4.Font = new System.Drawing.Font("Moscow Sans Regular", 20F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.rjButton4.ForeColor = System.Drawing.Color.White;
-            this.rjButton4.Location = new System.Drawing.Point(1190, 78);
-            this.rjButton4.Margin = new System.Windows.Forms.Padding(2);
-            this.rjButton4.Name = "rjButton4";
-            this.rjButton4.Size = new System.Drawing.Size(53, 53);
-            this.rjButton4.TabIndex = 28;
-            this.rjButton4.Text = " ←";
-            this.rjButton4.TextColor = System.Drawing.Color.White;
-            this.rjButton4.UseVisualStyleBackColor = false;
-            // 
-            // rjButton3
-            // 
-            this.rjButton3.BackColor = System.Drawing.Color.OrangeRed;
-            this.rjButton3.BackgroundColor = System.Drawing.Color.OrangeRed;
-            this.rjButton3.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.rjButton3.BorderRadius = 10;
-            this.rjButton3.BorderSize = 0;
-            this.rjButton3.FlatAppearance.BorderSize = 0;
-            this.rjButton3.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.rjButton3.Font = new System.Drawing.Font("Moscow Sans Regular", 20F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.rjButton3.ForeColor = System.Drawing.Color.White;
-            this.rjButton3.Location = new System.Drawing.Point(1256, 78);
-            this.rjButton3.Margin = new System.Windows.Forms.Padding(2);
-            this.rjButton3.Name = "rjButton3";
-            this.rjButton3.Size = new System.Drawing.Size(53, 53);
-            this.rjButton3.TabIndex = 27;
-            this.rjButton3.Text = " ↓";
-            this.rjButton3.TextColor = System.Drawing.Color.White;
-            this.rjButton3.UseVisualStyleBackColor = false;
-            // 
-            // rjButton5
-            // 
-            this.rjButton5.BackColor = System.Drawing.Color.OrangeRed;
-            this.rjButton5.BackgroundColor = System.Drawing.Color.OrangeRed;
-            this.rjButton5.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.rjButton5.BorderRadius = 10;
-            this.rjButton5.BorderSize = 0;
-            this.rjButton5.FlatAppearance.BorderSize = 0;
-            this.rjButton5.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.rjButton5.Font = new System.Drawing.Font("Moscow Sans Regular", 20F);
-            this.rjButton5.ForeColor = System.Drawing.Color.White;
-            this.rjButton5.Location = new System.Drawing.Point(1256, 14);
-            this.rjButton5.Margin = new System.Windows.Forms.Padding(2);
-            this.rjButton5.Name = "rjButton5";
-            this.rjButton5.Size = new System.Drawing.Size(53, 52);
-            this.rjButton5.TabIndex = 26;
-            this.rjButton5.Text = " ↑";
-            this.rjButton5.TextColor = System.Drawing.Color.White;
-            this.rjButton5.UseVisualStyleBackColor = false;
-            // 
             // rjButton2
             // 
             this.rjButton2.BackColor = System.Drawing.Color.OrangeRed;
@@ -281,7 +202,7 @@ namespace TeleRC
             this.comboBoxPort.Margin = new System.Windows.Forms.Padding(2);
             this.comboBoxPort.MinimumSize = new System.Drawing.Size(100, 24);
             this.comboBoxPort.Name = "comboBoxPort";
-            this.comboBoxPort.Size = new System.Drawing.Size(115, 53);
+            this.comboBoxPort.Size = new System.Drawing.Size(115, 51);
             this.comboBoxPort.TabIndex = 20;
             this.comboBoxPort.OnSelectedIndexChanged += new System.EventHandler(this.comboBoxPort_OnSelectedIndexChanged);
             // 
@@ -328,7 +249,7 @@ namespace TeleRC
             this.btnConnectDisconnect.Location = new System.Drawing.Point(137, 10);
             this.btnConnectDisconnect.Margin = new System.Windows.Forms.Padding(2);
             this.btnConnectDisconnect.Name = "btnConnectDisconnect";
-            this.btnConnectDisconnect.Size = new System.Drawing.Size(187, 120);
+            this.btnConnectDisconnect.Size = new System.Drawing.Size(187, 118);
             this.btnConnectDisconnect.TabIndex = 18;
             this.btnConnectDisconnect.Text = "Подключиться";
             this.btnConnectDisconnect.TextColor = System.Drawing.Color.White;
@@ -425,11 +346,7 @@ namespace TeleRC
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
             this.BackColor = System.Drawing.SystemColors.Window;
             this.ClientSize = new System.Drawing.Size(1904, 1041);
-            this.Controls.Add(this.rjButton6);
-            this.Controls.Add(this.rjButton4);
             this.Controls.Add(this.pictureBoxLidar);
-            this.Controls.Add(this.rjButton3);
-            this.Controls.Add(this.rjButton5);
             this.Controls.Add(this.rjButton2);
             this.Controls.Add(this.rjButton1);
             this.Controls.Add(this.txtSendData);
@@ -466,9 +383,6 @@ namespace TeleRC
         private CustomControls.RJControls.RJTextBox txtSendData;
         private CustomControls.RJControls.RJButton rjButton1;
         private CustomControls.RJControls.RJButton rjButton2;
-        private CustomControls.RJControls.RJButton rjButton5;
-        private CustomControls.RJControls.RJButton rjButton3;
-        private CustomControls.RJControls.RJButton rjButton4;
-        private CustomControls.RJControls.RJButton rjButton6;
+        private ToolTip Описание;
     }
 }

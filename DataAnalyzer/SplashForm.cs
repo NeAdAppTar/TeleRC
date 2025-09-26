@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -17,7 +17,7 @@ namespace DataParserApp
         private string[] logoImages;
 
         [DllImport("Gdi32.dll", EntryPoint = "CreateRoundRectRgn")]
-        private static extern IntPtr CreateRoundRectRgn
+        private static extern IntPtr CreateRoundRectRgn  
         (
             int nLeftRect,
             int nTopRect,
@@ -227,7 +227,7 @@ namespace DataParserApp
         {
             EnsureSettingsDirectoryExists();
 
-            int nextIndex = (currentIndex + 1) % logoImages.Length;
+            int nextIndex = (currentIndex) % logoImages.Length;
             File.WriteAllText(LastImageIndexFile, nextIndex.ToString());
         }
 
@@ -235,7 +235,10 @@ namespace DataParserApp
         {
             try
             {
-                return Image.FromFile(filePath);
+                using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+                {
+                    return new Bitmap(fs); // создаёт копию, освобождает файл
+                }
             }
             catch
             {
@@ -243,6 +246,7 @@ namespace DataParserApp
                 return null;
             }
         }
+
 
         private void EnsureSettingsDirectoryExists()
         {
@@ -264,6 +268,11 @@ namespace DataParserApp
 
             Form1 mainForm = new Form1();
             mainForm.Show();
+        }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

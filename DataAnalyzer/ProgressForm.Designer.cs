@@ -1,4 +1,4 @@
-namespace YourNamespace
+﻿namespace YourNamespace
 {
     partial class ProgressForm
     {

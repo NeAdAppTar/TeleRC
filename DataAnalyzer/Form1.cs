@@ -1,26 +1,18 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.IO.Ports;
-// using System.Windows;
 using System.Windows.Forms;
 using LiveCharts;
-using LiveCharts.WinForms;
 using LiveCharts.Wpf;
 using LiveCharts.Defaults;
-using System.IO.Compression;
-using System.Net;
 using System.Diagnostics;
-using System.CodeDom;
-using System.Threading;
-using System.Threading.Tasks;
-using Tulpep.NotificationWindow;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Microsoft.Toolkit.Uwp.Notifications;
-using System.Windows.Input;
+using System.Runtime.InteropServices;
+using System.Text;
+
 
 
 
@@ -33,10 +25,12 @@ namespace TeleRC
 
         private string logFilePath;
 
+        private bool isClosing = false;
+
+        private int seaLevelPressure = 101325;
 
         private int[] latestLidarDistances = new int[19];
 
-        // Отдельные серии для каждой оси ускорения и высоты
         private ChartValues<ObservablePoint> accelXValues;
         private ChartValues<ObservablePoint> accelYValues;
         private ChartValues<ObservablePoint> accelZValues;
@@ -51,17 +45,68 @@ namespace TeleRC
             InitializeCharts();
             InitializeLogFile();
             this.comboBoxBaudRate.SelectedIndex = 0;
-          //  txtSendData1.KeyDown += txtSendData_KeyDown;
             this.KeyPreview = true;
             this.KeyDown += Form1_KeyDown;
 
 
             portRefreshTimer = new System.Windows.Forms.Timer();
-            portRefreshTimer.Interval = 3000; // обновление каждые 3 секунды
+            portRefreshTimer.Interval = 3000;
             portRefreshTimer.Tick += PortRefreshTimer_Tick;
             portRefreshTimer.Start();
+        }
+
+        private double calculateAltitude(double pressure, int seaLevelPressure)
+        {
+            return (44330.0 * (1.0 - Math.Pow(pressure / seaLevelPressure, 0.1903)) * 100);
+        }
 
 
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        struct RadioData
+        {
+            public ushort start_of_packet;
+            public ushort team_id;
+            public uint time;
+            public short temperature;
+            public int pressure;
+            public short accelerometer_x;
+            public short accelerometer_y;
+            public short accelerometer_z;
+            public short gyroscope_x;
+            public short gyroscope_y;
+            public short gyroscope_z;
+            public byte checksum;
+            public byte answer;
+
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 17)]
+            public ushort[] distanses;
+        }
+
+        private const int RADIO_DATA_SIZE = 2 + 2 + 4 + 2 + 4 + 2 * 6 + 1 + 1 + 17 * 2;
+
+        private static RadioData ByteArrayToRadioData(byte[] bytes)
+        {
+            GCHandle handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+            try
+            {
+                return Marshal.PtrToStructure<RadioData>(handle.AddrOfPinnedObject());
+            }
+            finally
+            {
+                handle.Free();
+            }
+        }
+
+        private static string FormatRadioData(RadioData d)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"{d.team_id};{d.time};{d.temperature};{d.pressure};");
+            sb.Append($"{d.accelerometer_x};{d.accelerometer_y};{d.accelerometer_z};");
+            sb.Append($"{d.gyroscope_x};{d.gyroscope_y};{d.gyroscope_z}");
+            foreach (ushort dist in d.distanses)
+                sb.Append($";{dist}");
+            return sb.ToString();
         }
 
         private void PortRefreshTimer_Tick(object sender, EventArgs e)
@@ -80,7 +125,6 @@ namespace TeleRC
                 }
                 else
                 {
-                    // Можно, например, очистить выбранный порт
                     comboBoxPort.Text = "";
                 }
 
@@ -95,9 +139,10 @@ namespace TeleRC
             {
                 try
                 {
-                    string dataToSend = txtSendData.Text;
-                    serialPort.WriteLine(dataToSend);
-                    ShowToastNotification("Успешно", "Данные отправлены");
+                    string getstr = txtSendData.Text;
+                    string dataToSend = $"{getstr}\n";
+                    serialPort.Write(dataToSend);
+
                 }
                 catch (Exception ex)
                 {
@@ -106,7 +151,7 @@ namespace TeleRC
             }
             else
             {
-                showToast("Ошибка", "Порт не подключен");
+
             }
         }
 
@@ -177,7 +222,7 @@ namespace TeleRC
             cartesianChart1.AxisX.Add(new Axis
             {
                 Title = "Время (с)",
-                LabelFormatter = value => value.ToString("0") // Just display seconds
+                LabelFormatter = value => value.ToString("0")
             });
 
             cartesianChart1.AxisY.Add(new Axis
@@ -190,7 +235,7 @@ namespace TeleRC
             cartesianChart2.AxisX.Add(new Axis
             {
                 Title = "Время (с)",
-                LabelFormatter = value => value.ToString("0") // Just display seconds
+                LabelFormatter = value => value.ToString("0")
             });
 
             cartesianChart2.AxisY.Add(new Axis
@@ -203,7 +248,7 @@ namespace TeleRC
 
         private string[] dataFieldsOrder;
 
-        
+
 
         private void UpdateCharts(string data)
         {
@@ -215,35 +260,53 @@ namespace TeleRC
 
             string[] values = data.Split(';');
 
-            if (values.Length != 12) return; // Проверка на достаточное количество значений
+            if (values.Length < 27) return; // 10 графиков + 17 лидара = минимум 27
 
-            // Извлекаем время из данных
             if (double.TryParse(values[1], out double time)) // Время на индекс 1
             {
                 timeElapsed = time / 1000.0; // Конвертируем миллисекунды в секунды
             }
 
-            // Извлекаем высоту и ускорения
-            if (double.TryParse(values[2], out double altitude)) // Высота на индекс 2
-            {
-                altitudeValues.Add(new ObservablePoint(timeElapsed, altitude / 100.0)); // Конвертируем в метры
-            }
+            if (double.TryParse(values[3], out double altitude)) // Высота
+                altitudeValues.Add(new ObservablePoint(timeElapsed, calculateAltitude(altitude, seaLevelPressure) / 100.0));
 
-            if (double.TryParse(values[3], out double accelX)) // aX на индекс 3
-            {
-                accelXValues.Add(new ObservablePoint(timeElapsed, accelX * 9.81 / 100.0)); // Конвертируем в m/s²
-            }
+            if (double.TryParse(values[4], out double accelX)) // aX
+                accelXValues.Add(new ObservablePoint(timeElapsed, accelX * 9.81 / 100.0));
 
-            if (double.TryParse(values[4], out double accelY)) // aY на индекс 4
-            {
-                accelYValues.Add(new ObservablePoint(timeElapsed, accelY * 9.81 / 100.0)); // Конвертируем в m/s²
-            }
+            if (double.TryParse(values[5], out double accelY)) // aY
+                accelYValues.Add(new ObservablePoint(timeElapsed, accelY * 9.81 / 100.0));
 
-            if (double.TryParse(values[5], out double accelZ)) // aZ на индекс 5
+            if (double.TryParse(values[6], out double accelZ)) // aZ
+                accelZValues.Add(new ObservablePoint(timeElapsed, accelZ * 9.81 / 100.0));
+
+            // Ограничение количества точек
+            const int MaxPoints = 60;
+            if (altitudeValues.Count > MaxPoints) altitudeValues.RemoveAt(0);
+            if (accelXValues.Count > MaxPoints) accelXValues.RemoveAt(0);
+            if (accelYValues.Count > MaxPoints) accelYValues.RemoveAt(0);
+            if (accelZValues.Count > MaxPoints) accelZValues.RemoveAt(0);
+
+            // 👇 Обновим lidar данные
+            try
             {
-                accelZValues.Add(new ObservablePoint(timeElapsed, accelZ * 9.81 / 100.0)); // Конвертируем в m/s²
+                int[] lidarDistances = values.Skip(10)
+                             .Where(s => int.TryParse(s, out _))
+                             .Take(17)
+                             .Select(s => int.Parse(s))
+                             .ToArray();
+
+                if (lidarDistances.Length == 17)
+                {
+                    latestLidarDistances = lidarDistances;
+                    pictureBoxLidar.Invalidate();
+                }
+            }
+            catch
+            {
+
             }
         }
+
 
         private void btnConnectDisconnect_Click(object sender, EventArgs e)
         {
@@ -253,18 +316,16 @@ namespace TeleRC
                 {
                     string selectedPort = comboBoxPort.SelectedItem.ToString();
                     int baudRate = int.Parse(comboBoxBaudRate.SelectedItem.ToString());
-                    
+
 
                     serialPort = new SerialPort(selectedPort, baudRate);
                     serialPort.DataReceived += new SerialDataReceivedEventHandler(DataReceivedHandler);
                     serialPort.Open();
-                    ShowToastNotification("Успешно", "Подключено к порту " + selectedPort + " со скоростью " + baudRate);
                     btnConnectDisconnect.Text = "Отключиться";
                     isConnected = true;
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.Forms.MessageBox.Show("[C1001] " + "Ошибка при подключении: " + ex.Message, "Ошибка", MessageBoxButtons.OK);
                     ShowToastNotification("Ошибка", "Ошибка при подключении: " + ex.Message);
                 }
             }
@@ -272,14 +333,17 @@ namespace TeleRC
             {
                 try
                 {
+                    isClosing = true;
+
                     serialPort.Close();
-                    ShowToastNotification("Внимание", "Отключено");
+
+                    isClosing = false;
+
                     btnConnectDisconnect.Text = "Подключиться";
                     isConnected = false;
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.Forms.MessageBox.Show("[C1002] " + "Ошибка при отключении: " + ex.Message, "Ошибка", MessageBoxButtons.OK);
                     ShowToastNotification("Ошибка", "Ошибка при отключении: " + ex.Message);
                 }
             }
@@ -287,35 +351,46 @@ namespace TeleRC
 
         private void DataReceivedHandler(object sender, SerialDataReceivedEventArgs e)
         {
+            if (isClosing || !isConnected || serialPort == null || !serialPort.IsOpen)
+                return;
             try
             {
-                string data = serialPort.ReadLine().Trim();
+                int bytesToRead = serialPort.BytesToRead;
 
-                this.Invoke(new Action(() =>
+                if (bytesToRead >= RADIO_DATA_SIZE)
                 {
-                    if (IsLidarData(data))
-                    {
-                        VisualizeLidarData(data);
-                    }
-                    else
-                    {
-                        UpdateCharts(data);
-                    }
 
-                    // Отображение данных в TextBox
-                    txtData.AppendText(data + Environment.NewLine);
-                    SaveTelemetryToFile(data);
-                }));
+                    byte[] buffer = new byte[RADIO_DATA_SIZE];
+                    serialPort.Read(buffer, 0, RADIO_DATA_SIZE);
+
+                    // Проверка начала пакета
+                    if (buffer[0] != 0xAA || buffer[1] != 0xAA) return;
+
+                    RadioData packet = ByteArrayToRadioData(buffer);
+                    
+                    string formatted = FormatRadioData(packet);
+
+                    this.Invoke(new Action(() =>
+                    {
+                        if (isClosing) return;
+
+                        UpdateCharts(formatted);
+                        txtData.AppendText(formatted + Environment.NewLine);
+                        SaveTelemetryToFile(formatted);
+                    }));
+                }
             }
             catch (Exception ex)
             {
-                showToast("Ошибка", "Ошибка при получении данных: " + ex.Message);
+                showToast("Ошибка", "Ошибка при получении RadioData: " + ex.Message);
             }
+
         }
 
 
 
-        private bool IsLidarData(string data)
+
+        private bool IsLidarData(string data) // неактивно
         {
             var parts = data.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -328,12 +403,10 @@ namespace TeleRC
         }
 
 
-        private void VisualizeLidarData(string data)
+        private void VisualizeLidarData(string data) // неактивно
         {
-            // Очищаем старые данные
             latestLidarDistances = null;
 
-            // Разбираем новые данные
             var distances = data.Split(new[] { ' ', ';' }, StringSplitOptions.RemoveEmptyEntries)
                                 .Select(s => int.Parse(s))
                                 .ToArray();
@@ -346,8 +419,6 @@ namespace TeleRC
 
         private void pictureBoxLidar_Paint(object sender, PaintEventArgs e)
         {
-            if (latestLidarDistances == null || latestLidarDistances.Length != 19) return;
-
             Graphics g = e.Graphics;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             g.Clear(Color.Black);
@@ -358,21 +429,29 @@ namespace TeleRC
 
             Pen pen = new Pen(Color.Lime, 2);
 
-            for (int i = 0; i < latestLidarDistances.Length; i++)
+
+
+            if (latestLidarDistances == null || latestLidarDistances.Length != 17)
             {
-                double angleDeg = i * 10;
+                g.DrawString("Нет данных лидара", new Font("Arial", 12), Brushes.White, 10, 10);
+                return;
+            }
+
+            for (int i = 0; i < 17; i++)
+            {
+                double angleDeg = i * (180.0 / 16);
                 double angleRad = angleDeg * Math.PI / 180;
 
-                // Нормализуем расстояние в диапазон [0, maxRadius]
-                int dist = Math.Min(latestLidarDistances[i], 200); // Ограничим макс. радиус
-                double scale = (double)dist / 200;
+                int rawDist = latestLidarDistances[i];
+                int dist = Math.Min(rawDist, 200);
+                double scale = dist / 200.0;
                 int radius = (int)(scale * maxRadius);
 
                 int x = centerX + (int)(radius * Math.Cos(angleRad));
-                int y = centerY - (int)(radius * Math.Sin(angleRad)); // Минус — чтобы верх был 90°
+                int y = centerY - (int)(radius * Math.Sin(angleRad));
 
                 g.DrawLine(pen, centerX, centerY, x, y);
-                g.FillEllipse(Brushes.Red, x - 3, y - 3, 6, 6);
+                g.FillEllipse(Brushes.Red, x - 4, y - 4, 8, 8);
             }
 
             pen.Dispose();
@@ -380,7 +459,7 @@ namespace TeleRC
 
 
 
-        // Метод для сохранения графика в файл
+
         private void btnSaveChart_Click(object sender, EventArgs e)
         {
             SaveFileDialog saveFileDialog = new SaveFileDialog();
@@ -406,8 +485,6 @@ namespace TeleRC
             }
         }
 
-        // Метод для сохранения данных в файл
-        // Метод для сохранения данных в файл
         private void btnSaveData_Click(object sender, EventArgs e)
         {
             SaveFileDialog saveFileDialog = new SaveFileDialog();
@@ -418,7 +495,7 @@ namespace TeleRC
             if (saveFileDialog.ShowDialog() == DialogResult.OK)
             {
                 string fileName = saveFileDialog.FileName;
-                File.WriteAllText(fileName, txtData.Text);  // txtData — это TextBox, где отображаются данные
+                File.WriteAllText(fileName, txtData.Text);
 
                 ShowToastNotification("Успешно", "Данные сохранены!");
 
@@ -443,7 +520,8 @@ namespace TeleRC
             accelYValues.Clear();
             accelZValues.Clear();
 
-            ShowToastNotification("Внимание", "Данные графиков очищены.");
+
+            txtData.Clear();
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -452,7 +530,7 @@ namespace TeleRC
 
         public void showToast(string type, string message)
         {
-            
+
         }
 
         private void comboBoxPort_OnSelectedIndexChanged(object sender, EventArgs e)
@@ -508,7 +586,7 @@ namespace TeleRC
                 string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
                 logFilePath = Path.Combine(chartsPath, $"telemetry_{timestamp}.log");
 
-                
+
             }
             catch (Exception ex)
             {
@@ -528,22 +606,21 @@ namespace TeleRC
             {
                 showToast("121", "1231");
                 if (isConnected && serialPort != null && serialPort.IsOpen)
-            {
-                try
                 {
-                    string dataToSend = txtSendData.Text;
-                    serialPort.WriteLine(dataToSend);
-                    ShowToastNotification("Успешно", "Данные отправлены");
+                    try
+                    {
+                        string dataToSend = txtSendData.Text;
+                        serialPort.WriteLine(dataToSend);
+                    }
+                    catch (Exception ex)
+                    {
+                        ShowToastNotification("Ошибка", "Ошибка при отправке данных: " + ex.Message);
+                    }
                 }
-                catch (Exception ex)
+                else
                 {
-                    ShowToastNotification("Ошибка", "Ошибка при отправке данных: " + ex.Message);
+                    showToast("Ошибка", "Порт не подключен");
                 }
-            }
-            else
-            {
-                showToast("Ошибка", "Порт не подключен");
-            }
             }
         }
 
@@ -558,11 +635,27 @@ namespace TeleRC
                 if (!string.IsNullOrWhiteSpace(txtSendData.Texts))
                 {
                     BtnSendData_Click(sender, EventArgs.Empty);
-                    txtSendData.Texts = ""; 
+                    txtSendData.Texts = "";
                 }
             }
         }
 
+        private void OpenSysFile_Click(object sender, EventArgs e)
+        {
+            string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string chartsPath = Path.Combine(appDataPath, "Charts");
+
+            // Папка существует?
+            if (!Directory.Exists(chartsPath))
+            {
+                Directory.CreateDirectory(chartsPath);
+            }
+
+            // Открываем папку
+            Process.Start("explorer.exe", chartsPath);
+        }
+
+        
 
 
     }

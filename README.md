@@ -1,1 +1,1 @@
-A program for receiving and visualizing telemetry from a launch vehicle for Vch VISh. // SR 2025
+A program for receiving and visualizing telemetry from a launch vehicle for All-Russian Championship "VISh". // SR 2025
